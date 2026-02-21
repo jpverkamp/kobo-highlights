@@ -270,17 +270,25 @@ def fetch_chapter(
     return chapter
 
 
-def fetch_chapters(db: sqlite3.Connection, book_id: str) -> list[sqlite3.Row]:
+def fetch_chapters(
+    db: sqlite3.Connection, book_id: str, sort: str
+) -> list[sqlite3.Row]:
+    if sort == "latest":
+        order_by = "MAX(COALESCE(b.date_modified, b.date_created)) DESC"
+    else:
+        order_by = "c.title ASC"
+
     return db.execute(
-        """
+        f"""
         SELECT c.content_id, c.title, c.slug,
                MIN(b.chapter_progress) AS first_progress,
-               COUNT(*) AS highlight_count
+               COUNT(*) AS highlight_count,
+               MAX(COALESCE(b.date_modified, b.date_created)) AS latest_activity
         FROM chapters c
         JOIN bookmarks b ON b.chapter_content_id = c.content_id
         WHERE c.book_content_id = ?
         GROUP BY c.content_id, c.title
-        ORDER BY first_progress ASC, c.title ASC
+        ORDER BY {order_by}
         """,
         (book_id,),
     ).fetchall()
@@ -309,7 +317,7 @@ def build_markdown(
     chapters = (
         [fetch_chapter(db, book_slug, chapter_slug)]
         if chapter_slug
-        else fetch_chapters(db, book["content_id"])
+        else fetch_chapters(db, book["content_id"], "alpha")
     )
 
     for chapter in chapters:
@@ -405,10 +413,13 @@ def latest_highlights(request: Request, q: str | None = None) -> HTMLResponse:
 
 
 @app.get("/books/{book_slug}", response_class=HTMLResponse)
-def book_detail(book_slug: str, request: Request) -> HTMLResponse:
+def book_detail(
+    book_slug: str, request: Request, sort: str | None = None
+) -> HTMLResponse:
     with get_db() as db:
         book = fetch_book(db, book_slug)
-        chapters = fetch_chapters(db, book["content_id"])
+        sort_key = "latest" if sort == "latest" else "alpha"
+        chapters = fetch_chapters(db, book["content_id"], sort_key)
 
     return templates.TemplateResponse(
         "book.html",
@@ -416,6 +427,7 @@ def book_detail(book_slug: str, request: Request) -> HTMLResponse:
             "request": request,
             "book": book,
             "chapters": chapters,
+            "sort": sort_key,
         },
     )
 

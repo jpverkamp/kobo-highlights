@@ -4,6 +4,16 @@
 </div>
 <div class="page-header">
   <h1>{{ book['title'] }}</h1>
+  <div class="sort-toggle">
+    <a
+      class="sort-link{% if sort == 'alpha' %} is-active{% endif %}"
+      href="/books/{{ book['slug'] }}?sort=alpha"
+    >A-Z</a>
+    <a
+      class="sort-link{% if sort == 'latest' %} is-active{% endif %}"
+      href="/books/{{ book['slug'] }}?sort=latest"
+    >Latest</a>
+  </div>
 </div>
 <div class="card-grid">
   {% for chapter in chapters %}
