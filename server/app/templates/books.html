@@ -1,0 +1,13 @@
+{% extends "base.html" %} {% block content %}
+<h1>Books</h1>
+<div class="card-grid">
+  {% for book in books %}
+  <a class="card" href="/books/{{ book['slug'] }}">
+    <h2>{{ book['title'] }}</h2>
+    <p>{{ book['highlight_count'] }} highlights</p>
+  </a>
+  {% else %}
+  <p>No highlights yet. Upload from your Kobo to get started.</p>
+  {% endfor %}
+</div>
+{% endblock %}

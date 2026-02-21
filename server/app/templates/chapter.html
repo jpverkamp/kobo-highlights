@@ -1,0 +1,11 @@
+{% extends "base.html" %} {% block content %}
+<div class="breadcrumb">
+  <a href="/books">Books</a>
+  <span>/</span>
+  <a href="/books/{{ book['slug'] }}">{{ book['title'] }}</a>
+</div>
+<div class="page-header">
+  <h1>{{ chapter['title'] }}</h1>
+</div>
+<article class="content">{{ html | safe }}</article>
+{% endblock %}

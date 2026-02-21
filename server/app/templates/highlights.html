@@ -1,0 +1,32 @@
+{% extends "base.html" %} {% block content %}
+<div class="page-header">
+  <h1>Latest Highlights</h1>
+  <form class="search-form" method="get" action="/highlights">
+    <input
+      type="text"
+      name="q"
+      placeholder="Search books, chapters, highlights"
+      value="{{ query }}"
+    />
+    <button type="submit">Search</button>
+  </form>
+</div>
+<div class="highlight-list">
+  {% for row in highlights %}
+  <div class="highlight">
+    <h2>
+      <a href="/books/{{ row['book_slug'] }}/chapter/{{ row['chapter_slug'] }}"
+        >{{ row['book_title'] }}</a
+      >
+    </h2>
+    <p class="meta">{{ row['chapter_title'] }}</p>
+    <blockquote>{{ row['text'] }}</blockquote>
+    {% if row['annotation'] %}
+    <p class="annotation">{{ row['annotation'] }}</p>
+    {% endif %}
+  </div>
+  {% else %}
+  <p>No highlights found.</p>
+  {% endfor %}
+</div>
+{% endblock %}
