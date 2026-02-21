@@ -39,23 +39,10 @@ Main menu:
 
 ```txt
 menu_item :main :Sync Notes :nickel_wifi :autoconnect
-  chain_success :cmd_spawn :quiet :/mnt/onboard/.adds/notes/send-db.sh
-  chain_success :dbg_toast :Notes synced
-  chain_success :cmd_output :/bin/cat /mnt/onboard/.adds/notes/last_status.txt
-  chain_failure :cmd_output :/bin/cat /mnt/onboard/.adds/notes/last_error.txt
-  chain_failure :dbg_toast :Notes sync failed
+  chain_success :cmd_output :9999 :/mnt/onboard/.adds/notes/send-db.sh
 ```
 
-Reader (in-book) menu:
-
-```txt
-menu_item :reader :Sync Notes :nickel_wifi :autoconnect
-  chain_success :cmd_spawn :quiet :/mnt/onboard/.adds/notes/send-db.sh
-  chain_success :dbg_toast :Notes synced
-  chain_success :cmd_output :/bin/cat /mnt/onboard/.adds/notes/last_status.txt
-  chain_failure :cmd_output :/bin/cat /mnt/onboard/.adds/notes/last_error.txt
-  chain_failure :dbg_toast :Notes sync failed
-```
+You can add it to the in-book menu by swapping `:main` with `:reader` in the first line, I have both. 
 
 Notes:
 - `last_status.txt` and `last_error.txt` are updated by the client script.

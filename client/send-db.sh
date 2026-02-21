@@ -6,6 +6,8 @@ SERVER_BASE="http://kobo-server.local:8000"
 NOTES="/mnt/onboard/.adds/notes"
 DB="/mnt/onboard/.kobo/KoboReader.sqlite"
 CURL="${NOTES}/curl"
+CERT="${NOTES}/ca-bundle.crt"
+SQLITE="${NOTES}/sqlite3"
 
 SERVER_URL="${SERVER_BASE}/upload"
 SERVER_HEALTH="${SERVER_BASE}/health"
@@ -15,12 +17,26 @@ ERROR_FILE="${NOTES}/last_error.txt"
 UPLOAD_DB="${NOTES}/upload.sqlite"
 
 
-LD_LIBRARY_PATH="${NOTES}/lib:${LD_LIBRARY_PATH}"
+LD_LIBRARY_PATH="${NOTES}/lib:${LD_LIBRARY_PATH:-}"
 export LD_LIBRARY_PATH
 
+LAST_ERROR=""
+
+on_exit() {
+  code=$?
+  if [ "$code" -ne 0 ] && [ -z "$LAST_ERROR" ]; then
+    echo "Unexpected error" > "$ERROR_FILE"
+    echo "Failed: Unexpected error" > "$STATUS_FILE"
+  fi
+}
+
+trap on_exit EXIT
+
 fail() {
-  echo "$1" > "$ERROR_FILE"
-  echo "Failed: $1" > "$STATUS_FILE"
+  LAST_ERROR="$1"
+  echo "$LAST_ERROR" > "$ERROR_FILE"
+  echo "Failed: $LAST_ERROR" > "$STATUS_FILE"
+  echo "ERROR: $LAST_ERROR" >&2
   exit 1
 }
 
@@ -38,7 +54,7 @@ fi
 
 rm -f "$UPLOAD_DB"
 
-if ! sqlite3 "$UPLOAD_DB" <<EOF
+if ! "$SQLITE" "$UPLOAD_DB" <<EOF
 ATTACH '$DB' AS k;
 CREATE TABLE Bookmark AS
 SELECT * FROM k.Bookmark
@@ -59,7 +75,7 @@ then
   fail "Failed to build upload database"
 fi
 
-COUNT=$(sqlite3 "$UPLOAD_DB" "SELECT COUNT(*) FROM Bookmark;") || fail "Failed to count highlights"
+COUNT=$("$SQLITE" "$UPLOAD_DB" "SELECT COUNT(*) FROM Bookmark;") || fail "Failed to count highlights"
 if [ "$COUNT" -eq 0 ]; then
   echo "No new highlights to upload."
   echo "No new highlights to upload." > "$STATUS_FILE"
@@ -67,11 +83,16 @@ if [ "$COUNT" -eq 0 ]; then
   exit 0
 fi
 
-if ! $CURL -f -s -S "$SERVER_HEALTH" > /dev/null; then
+CURL_CERT_ARGS=""
+if [ -f "$CERT" ]; then
+  CURL_CERT_ARGS="--cacert $CERT"
+fi
+
+if ! $CURL $CURL_CERT_ARGS -f -s -S "$SERVER_HEALTH" > /dev/null; then
   fail "Server not reachable: $SERVER_BASE"
 fi
 
-if ! $CURL -f -s -S -X POST "$SERVER_URL" -F "db=@$UPLOAD_DB" > /dev/null; then
+if ! $CURL $CURL_CERT_ARGS -f -s -S -X POST "$SERVER_URL" -F "db=@$UPLOAD_DB" > /dev/null; then
   fail "Upload failed"
 fi
 
